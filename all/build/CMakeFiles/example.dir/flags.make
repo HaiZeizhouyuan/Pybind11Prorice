@@ -6,5 +6,5 @@ CXX_DEFINES = -Dexample_EXPORTS
 
 CXX_INCLUDES = -isystem /usr/local/include -isystem /usr/local/Cellar/python@3.9/3.9.2_1/Frameworks/Python.framework/Versions/3.9/include/python3.9
 
-CXX_FLAGS =  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk -mmacosx-version-min=10.15 -fPIC -fvisibility=hidden -flto -std=gnu++11
+CXX_FLAGS =  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk -mmacosx-version-min=10.15 -fPIC -fvisibility=hidden -std=gnu++11
 

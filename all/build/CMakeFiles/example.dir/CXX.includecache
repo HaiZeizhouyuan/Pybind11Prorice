@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/Users/zhiyi/Pybind11Prorice/all/example.cpp
+/Users/zhiyi/pybind_protice/all/example.cpp
 pybind11/pybind11.h
 -
 
