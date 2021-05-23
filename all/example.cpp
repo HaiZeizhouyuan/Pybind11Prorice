@@ -7,6 +7,8 @@
 #include <iostream>
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
+using std::cout;
+using std::endl;
 
 //example.add(x, y)
 int add(int x, int y) {
@@ -47,18 +49,94 @@ class Cat {
 
 class People {
     public:
-        People(const std::string &name) : name(name){}
-        std::string name;
-};
+        People(const std::string &name, int age) : name(name), age(age){}
+        std::string getName() { return name; }
+        void setName(const std::string& name_) { name = name_; }
+        void set(const std::string &name_) { name = name_; }
+        void set(int age_)  { age = age_; }
+        virtual void eat() = 0;
+        virtual void drink(const std::string& name_) { cout << "I like drink with"  << name_ << endl; }
 
-class Man: public  People {
+        virtual ~People() {}
+    private:
+        std::string name;
+        int age;
+};
+template <class PeopleBase = People>  class PyPeople:public PeopleBase {
     public:
-        Man(const std::string &name): People(name) {}
-        void run() {
-            std::cout << "I can run" << std::endl;
+        using PeopleBase::PeopleBase;
+        void eat() override{
+            PYBIND11_OVERRIDE_PURE (
+                void,
+                PeopleBase,
+                eat,
+            );
+        }
+        void drink(const std::string& name_) override {
+            PYBIND11_OVERRIDE_PURE (
+                void,
+                PeopleBase,
+                drink,
+                name_
+            );
         }
 };
 
+
+class Man: public  People {
+    public:
+        enum Kind {
+           Dog = 0,
+           Cat
+        };
+        Man(const std::string &name, int age, Kind type): People(name, age), type(type) {}
+        void run() {
+            std::cout << "I can run" << std::endl;
+        }
+
+        void eat() override{
+                cout << "I like eat apple" << endl;
+        }
+
+      /*  void drink(const std::string &name_) override {
+                cout << "I like drink milk with " << name_ << endl;
+        }
+*/
+        Kind type;
+    private:
+        std::string name;
+        int age;
+};
+
+template <class ManBase = Man> 
+class PyMan:public  PyPeople<ManBase>{
+public:
+    using PyPeople<ManBase>::PyPeople;
+    void eat()  override {
+            PYBIND11_OVERRIDE_PURE (
+                void,
+                ManBase, 
+                eat,
+
+            );
+    }
+    void drink(const  std::string &name_) override {
+        PYBIND11_OVERRIDE_PURE(
+            void,
+            ManBase,
+            drink,
+            name_
+        );
+
+    }
+
+};
+
+class JK :public Man {};
+
+
+
+//注：对于有多个构造函数， 只需使用.def(py::init<...>())语法一个一个地声明
 PYBIND11_MODULE(example, m) {
     m.attr("autor_name") = "zy";
     m.attr("autor_age") = 25;
@@ -67,6 +145,7 @@ PYBIND11_MODULE(example, m) {
     m.def("add", &add, "A function which adds two numbers");
     m.def("mul", &mul, "Keyword arguments", py::arg("x"), py::arg("y"));
     m.def("sub", &sub, "Default arguments", py::arg("x") = 10, py::arg("y") = 6);
+
     py::class_<Cat>(m, "Cat",py::dynamic_attr())
         .def(py::init<const std::string &, const std::string &, int>())
         .def("hello",&Cat::hello, "usually func bind")
@@ -78,10 +157,26 @@ PYBIND11_MODULE(example, m) {
                 return "<example Cat address'" + a._iddress  + "'>'";
                 }
             );
-    py::class_<People>(m, "People")
-        .def(py::init<const std::string &>())
-        .def_readwrite("name", &People::name);
-    py::class_<Man, People>(m, "Man")
-        .def(py::init<const std::string &>())
-        .def("run", &Man::run);
+    py::class_<People,PyPeople<>> people(m, "People");
+    people.def(py::init<const std::string &, int>())
+        .def_property("name", &People::getName, &People::setName)
+        .def("set", static_cast<void (People::*)(int)>(&People::set),"Overloaded set the pet's age")//c++11 overloaded
+        .def("set", static_cast<void (People::*)(const std::string&)>(&People::set),  "Overloaded set the pet's name");//c++11 overloaded
+        //template<typename... Args>
+        //using overload_cast_ = pybid11::detail::overload_cast_impl<Args...>;//只有c++11， 但想用overload_cast
+       // .def("set", py::overload_cast<int>(&People::set)).//根据参数类型推导返回类型和类， c++14 overloaded
+       // def("set", py::overload_cast<const std::string &>(&People::set))
+       // .def();
+    py::class_<Man, People, PyMan<>> man(m, "Man");
+    man.def(py::init<const std::string &, int, Man::Kind >())
+        .def("run", &Man::run)
+        .def_readwrite("type", &Man::type)
+        .def("eat", &People::eat);
+    py::enum_<Man::Kind>(m, "Kind")
+        .def("Dog", Man::Kind::Dog)
+        .def("Cat", Man::Kind::Cat);
+        //.export_values();//可用Man.Kind__members__查看属性,c++14
+    py::class_<JK,Man,  PyMan<JK>> jk(m, "JK");
+    
+
 }

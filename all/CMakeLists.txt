@@ -14,6 +14,5 @@ endif()
 message(STATUS "Find Pybind11: ${pybind11_FOUND}")
 
 set(PYBIND11_CPP_STANDARD -std=c++14)
-
 pybind11_add_module(${project_name} example.cpp)
 
